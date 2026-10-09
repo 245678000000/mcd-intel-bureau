@@ -52,6 +52,9 @@
 
 ## 情报样张（真实会话 · 已脱敏）
 
+![今日简报 · WorkBuddy 实机运行](docs/screenshots/workbuddy-briefing-1.png)
+![积分体检与抽奖实验室 · WorkBuddy 实机运行](docs/screenshots/workbuddy-briefing-2.png)
+
 ````text
 麦麦情报局 · 2026-10-09 简报
 
