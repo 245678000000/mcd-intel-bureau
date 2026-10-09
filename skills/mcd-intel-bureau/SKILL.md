@@ -25,7 +25,7 @@
 | 📅 活动日历 | `campaign-calendar` | 当月营销活动，挑「进行中 + 未来 7 天」播报 |
 | 🎫 券情速递 | `available-coupons` / `query-my-coupons` / `auto-bind-coupons` | 新券增量 → 提示一键领（需确认） |
 | 🏆 积分体检 | `query-my-account` / `mall-points-products` / `mall-product-detail` | 余额、**即将过期预警**、最优兑换路线 |
-| 🎰 抽奖实验室 | `query-lottery-info` / `query-my-prizes` | 概率×奖池 → 期望值；抽不抽局员自己定 |
+| 🎰 抽奖实验室 | `query-lottery-info` / `query-my-prizes` | 奖池结构 → 盈亏平衡分析（官方未公开概率，**不做伪 EV**） |
 | 🎉 主题活动雷达 | `query-party-city` → `query-party-store` → `query-partystore-date` → `query-partystore-session` | 按局员所在城市逐步缩小范围 |
 | 兑现动作 | `mall-create-order` / `party-order-create` | 兑换与预约，均需二次确认 |
 
@@ -69,7 +69,11 @@
 - 位置：本技能目录下，纯 Python 3 标准库，无第三方依赖。
 - 优先使用 stdin 模式，便于把 MCP 返回直接喂进去：
   `{"task": "redeem", "points": 3850, "expiring": 1200, "products": [...]}`
-- MCP 字段与模块字段的归一化由模块内部兼容，Agent 只需原样传递业务数组。
+- **实测字段已内置归一化**（2026-10 真机验证）：商品 `spuId/spuName/point/downTime`
+  （`price` 恒为 "0" 不可用，现金价值从 `spuName` 前缀解析；下架判定看 `downTime` 而非 `status`）；
+  抽奖 `drawPoint`（prizes 无概率字段）。
+- **抽奖必须传 `point_value` 锚点**（来自 redeem 输出的 `value_per_point`），否则模块拒绝
+  计算并提示先跑积分体检——官方未公开中奖概率，模块只输出盈亏平衡敏感性，不出伪 EV。
 
 ## 输出格式
 

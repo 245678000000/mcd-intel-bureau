@@ -89,27 +89,28 @@ sequenceDiagram
 
 ## 四、数据流：从 MCP 返回到播报结论
 
-MCP 返回的是业务原始结构，由 `intel_math.py` 归一化后做确定性精算：
+MCP 返回的是业务原始结构，由 `intel_math.py` 归一化后做确定性精算。
+以下字段映射经 2026-10 真机会话验证：
 
 ```
-MCP 返回                                intel_math.py            播报
+MCP 返回（实测字段）                    intel_math.py            播报
 ──────────────────────                  ─────────────────       ──────────
-query-my-account.expiringPoints  ──┐
-mall-points-products.items[]     ──┼──►  plan_redemption()  ──►  "1200 分 14 天后过期，
-    .point / .price / .title     ──┘    贪心: 过期积分优先       先兑拿铁再兑早餐券"
-                                        + 每积分价值锚点
+query-my-account 过期积分字段      ──┐
+mall-points-products[]           ──┼──►  plan_redemption()  ──►  "100 积分换可乐麦炫酷
+  .spuId / .spuName / .point     ──┘    spuName 前缀取面值        + 香芋派 = 13.8 元"
+  .price 恒为 "0"（忽略）                 downTime 过滤下架          锚点 0.138 元/分
+  .downTime 判下架（status 不可信）
 
-query-lottery-info.prizes[]      ──┐
-    .probability / .worth        ──┼──►  lottery_ev()       ──►  "消耗 500 分/次,
-    .consumePoints               ──┘    EV = Σ概率×价值          期望回报 ¥3.2, 建议不抽"
+query-lottery-info               ──┐
+  .drawPoint（消耗积分）          ──┼──►  lottery_ev()       ──►  "单抽 24 分 ≈ 3.31 元，
+  .prizes[].name（无概率字段）    ──┘    盈亏平衡敏感性            中奖率 ≥35% 才回本"
+                                        （官方未公开概率，
+                                         拒绝输出伪 EV）
 
 query-my-coupons.coupons[]       ──┐
 available-coupons.list[]         ──┼──►  coupon_radar()     ──►  "本周新增 3 张券,
                                   ──┘    差集 = 新券增量           回复一键领券处理"
 ```
-
-字段别名兼容（`point/points/needPoint`、`price/cash/worth`、`probability/rate` 等）
-在模块内统一归一化，Agent 只需原样传递 MCP 业务数组，降低prompt 长度与幻觉面。
 
 ## 五、安全与节流设计
 

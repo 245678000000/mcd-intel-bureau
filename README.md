@@ -25,7 +25,7 @@
 | 📅 **活动日历** | 当月活动解读，只挑「进行中 + 7 天内开演」 | `campaign-calendar` |
 | 🎫 **券情速递** | 我的券 × 可领券差集，新券播报 + 到期预警 | `available-coupons` `query-my-coupons` `auto-bind-coupons` |
 | 🏆 **积分体检** | **即将过期预警** + 最优兑换路线 + 每积分价值锚点 | `query-my-account` `mall-points-products` `mall-create-order` |
-| 🎰 **抽奖实验室** | 概率 × 奖池 → 期望值 EV，抽不抽你自己定 | `query-lottery-info` `query-my-prizes` |
+| 🎰 **抽奖实验室** | 奖池结构 → 盈亏平衡分析（官方未公开概率，**拒绝输出伪 EV**） | `query-lottery-info` `query-my-prizes` |
 | 🎉 **主题雷达** | 城市活动 × 门店 × 场次三级下钻 | `query-party-city/store/date/session` `party-order-create` |
 
 情报分级：🔴 紧急（快过期/快结束）· 🟡 关注 · 🟢 日常。先结论，后细节，数字说话。
@@ -50,32 +50,33 @@
 
 更多问法见 [docs/usage-examples.md](docs/usage-examples.md)。
 
-## 情报样张（示意）
+## 情报样张（真实会话 · 已脱敏）
 
 ````text
 麦麦情报局 · 2026-10-09 简报
 
-一句话局势：你有 1200 积分 14 天后过期，现在动手兑换最划算。
+一句话局势：卡包里 2 张 ¥9.9 券今晚 23:59 到期，先花掉再考虑别的。
 
 📅 活动日历
-  🟡 巨无霸买一送一：10.12–10.14 · 周末限定
-  🟢 早餐月卡加赠：进行中 · 至 10.31
+  🟢 麦麦积分抽奖：进行中 · 长期活动 · 单抽 24 积分
 🎫 券情速递
-  库存 6 张，本周新增 2 张：满 39 减 8（10.20 到期）
-  🔴 早餐半价券 3 天后到期
+  库存 14 张
+  🔴 麦旋风任选 ¥9.9、薯薯任选 ¥9.9 —— 今日 23:59 到期
 🏆 积分体检
-  可用 3850 分｜🔴 1200 分将于 10.23 前过期
-  最优兑换路线：大杯拿铁（1500 分）→ 早餐券（1200 分），合计约值 ¥39
-  价值锚点：当前商城最高性价比 ≈ 每 1000 积分 13.0 元
+  可用 102.6 分｜累计 411.7 分｜本月/下月无过期
+  最优兑换路线：6.9元可乐麦炫酷(50分) + 6.9元香芋派任选(50分) = 100 分换 13.8 元
+  价值锚点：全商城最高性价比 0.138 元/分（每千分 ≈ ¥138）
+  ⚠️ 已有 309.1 分过期（历史），本月起情报局帮你盯住
 🎰 抽奖实验室
-  消耗 500 分/次，期望回报 ¥3.2/次 → 🧊 建议积分留着换商品
+  单抽 24 分 ≈ ¥3.31（按兑换锚点折算）；奖池 10 档均为券/积分
+  盈亏平衡：中奖率需 ≥ ~35% 才回本（官方未公开概率，仅供参考）
 🎉 主题雷达
-  上海档期：麦麦主题派对 × 静安寺店 × 周六 14:00 场 · 手速建议：今晚报点
+  本周雷达无信号，下周再扫
 
-局长贴士：先把过期的 1200 分换成早餐券，周末买一送一再掏大券。
+局长贴士：100 积分今天就能换成两件小食，比抽奖期望划算得多。
 ````
 
-> 样张为演示数据。实际情报以你账户的 MCP 实时返回为准。
+> 以上来自 2026-10-09 WorkBuddy 真机会话（账户号已脱敏），完整对话见 [workbuddy.md](workbuddy.md)。
 
 ## 架构
 
@@ -91,13 +92,14 @@ graph LR
 
 **三段式设计**：读情报（只读工具）→ `intel_math.py` 确定性精算（贪心兑换路线、概率期望值、券差集）→ 确认门控后兑现（领券/兑换/预约均需局员二次确认）。
 
-精算模块零依赖（Python 3 标准库），独立可用：
+精算模块零依赖（Python 3 标准库），独立可用。已按真机 MCP 返回字段适配（`spuName/spuId/point/downTime`、`drawPoint`，下架判定看 `downTime` 而非 `status`）：
 
 ```bash
 python3 skills/mcd-intel-bureau/intel_math.py redeem \
   --points 3850 --expiring 1200 --deadline-days 14 --products products.json
 
-python3 skills/mcd-intel-bureau/intel_math.py lottery --info lottery.json
+# 抽奖：需传积分锚点（来自 redeem 的 value_per_point），无概率数据时输出盈亏平衡分析
+python3 skills/mcd-intel-bureau/intel_math.py lottery --info lottery.json --point-value 0.138
 ```
 
 ## 目录结构
